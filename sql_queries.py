@@ -19,54 +19,55 @@ time_table_drop = "DROP table IF EXISTS time"
 
 staging_events_table_create = ("CREATE TABLE IF NOT EXISTS staging_events"
                                "("
-                               "artist varchar(max) , "
+                               "artist varchar , "
                                "auth varchar, "
-                               "first_name varchar, "
-                               "gender char(1), "
-                               "item_in_session smallint, "
-                               "last_name varchar, "
+                               "firstName varchar, "
+                               "gender varchar, "
+                               "itemInSession integer, "
+                               "lastName varchar, "
                                "length real, "
-                               "level char(4),"
+                               "level varchar,"
                                "location varchar,"
-                               "method char(3),"
+                               "method varchar,"
                                "page varchar,"
-                               "registration double precision,"
-                               "session_id integer,"
+                               "registration real,"
+                               "sessionId integer,"
                                "song varchar,"
                                "status integer,"
                                "ts bigint,"
-                               "user_agent varchar,"
-                               "user_id integer"
+                               "userAgent varchar,"
+                               "userId integer"
                                ");"
                                )
 
 staging_songs_table_create = ("CREATE TABLE IF NOT EXISTS staging_songs"
                               "("
-                              "num_songs smallint, "
-                              "artist_id char(18), "
-                              "artist_latitude float, "
-                              "artist_longitude float, "
-                              "artist_location varchar(max), "
-                              "artist_name varchar(max) , "
-                              "song_id char(18), "
+                              "num_songs integer, "
+                              "artist_id varchar, "
+                              "artist_latitude real, "
+                              "artist_longitude real, "
+                              "artist_location varchar, "
+                              "artist_name varchar , "
+                              "song_id varchar, "
                               "title varchar , "
                               "duration real, "
-                              "year integer"
+                              "year real"
                               ");"
                               )
 
 songplay_table_create = ("CREATE TABLE IF NOT EXISTS songplays"
                          "("
-                         "songplay_id integer identity(0,1) PRIMARY KEY, "
+                         "songplay_id integer identity(1,1) PRIMARY KEY, "
                          "start_time timestamp, "
                          "user_id integer, "
-                         "level char(4), "
-                         "song_id char(18), "
-                         "artist_id char(18), "
+                         "level varchar, "
+                         "song_id varchar, "
+                         "artist_id varchar, "
                          "session_id integer, "
                          "location varchar, "
                          "user_agent varchar"
-                         ");"
+                         ")"
+                         "SORTKEY(start_time);"
                          )
 
 user_table_create = ("CREATE TABLE IF NOT EXISTS users"
@@ -75,40 +76,44 @@ user_table_create = ("CREATE TABLE IF NOT EXISTS users"
                      "first_name varchar, "
                      "last_name varchar, "
                      "gender char(1), "
-                     "level char(4)"
-                     ");"
+                     "level varchar"
+                     ")"
+                     "SORTKEY(user_id);"
                      )
 
 song_table_create = ("CREATE TABLE IF NOT EXISTS songs"
                      "("
-                     "song_id char(18) PRIMARY KEY, "
+                     "song_id varchar PRIMARY KEY, "
                      "title varchar, "
-                     "artist_id char(18) NOT NULL, "
+                     "artist_id varchar, "
                      "year integer, "
                      "duration real"
-                     ");"
+                     ")"
+                     "SORTKEY(song_id);"
                      )
 
 artist_table_create = ("CREATE TABLE IF NOT EXISTS artists"
                        "("
-                       "artist_id char(18) PRIMARY KEY, "
-                       "name varchar(max), "
-                       "location varchar(max), "
-                       "latitude float, "
-                       "longitude float"
-                       ");"
+                       "artist_id varchar PRIMARY KEY, "
+                       "name varchar, "
+                       "location varchar, "
+                       "latitude real, "
+                       "longitude real"
+                       ")"
+                       "SORTKEY(artist_id);"
                        )
 
 time_table_create = ("CREATE TABLE IF NOT EXISTS time"
                      "("
                      "start_time timestamp PRIMARY KEY, "
-                     "hour smallint, "
-                     "day smallint, "
-                     "week smallint, "
-                     "month smallint, "
-                     "year smallint, "
+                     "hour integer, "
+                     "day integer, "
+                     "week integer, "
+                     "month integer, "
+                     "year integer, "
                      "weekday VARCHAR"
-                     ");"
+                     ")"
+                     "SORTKEY(start_time);"
                      )
 
 # STAGING TABLES
@@ -132,39 +137,39 @@ FORMAT AS json 'auto';
 # FINAL TABLES
 
 songplay_table_insert = ("""
-INSERT INTO songplays (start_time, user_id, level, song_id, artist_id, session_id, location, user_agent)
-SELECT DISTINCT
-    TIMESTAMP 'epoch' + (e.ts / 1000) * INTERVAL '1 second' as start_time,
-    e.user_id,
-    e.level,
-    s.song_id,
-    s.artist_id,
-    e.session_id,
-    e.location,
-    e.user_agent
+INSERT INTO songplays (START_TIME, USER_ID, LEVEL, SONG_ID, ARTIST_ID, SESSION_ID, LOCATION, USER_AGENT)
+SELECT 
+       TIMESTAMP 'epoch' + (e.ts / 1000) * INTERVAL '1 second' as start_time,
+       e.userId,
+       e.level,
+       s.song_id,
+       s.artist_id,
+       e.sessionId,
+       e.location,
+       e.userAgent
 FROM staging_songs s
-JOIN staging_events e
+INNER JOIN staging_events e
 ON (s.title = e.song AND e.artist = s.artist_name)
-AND e.page = 'NextSong';
+WHERE e.page = 'NextSong';
 """)
 
 
 user_table_insert = ("""
 INSERT INTO users (user_id, first_name, last_name, gender, level)
-SELECT DISTINCT 
-    user_id, 
-    first_name, 
-    last_name, 
+SELECT
+    userId, 
+    firstName, 
+    lastName, 
     gender, 
     level
 FROM staging_events
-WHERE user_id IS NOT NULL
+WHERE userId IS NOT NULL
 AND page = 'NextSong';
 """)
 
 song_table_insert = ("""
 INSERT INTO songs (song_id, title, artist_id, year, duration)
-SELECT DISTINCT 
+SELECT
     song_id, 
     title, 
     artist_id, 
@@ -188,7 +193,7 @@ FROM staging_songs;
 
 time_table_insert = ("""
 INSERT INTO time (start_time, hour, day, week, month, year, weekday)
-SELECT DISTINCT
+SELECT
        TIMESTAMP 'epoch' + (ts/1000) * INTERVAL '1 second' as start_time,
        EXTRACT(HOUR FROM start_time) AS hour,
        EXTRACT(DAY FROM start_time) AS day,

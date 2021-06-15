@@ -88,22 +88,17 @@ To get a local copy up and running follow these simple steps.
 8. Delete your redshift cluster when finished.
 
 ### Sample query
-TODO - [Optional] Provide example queries and results for song play analysis.
-An example query that can be used on this dataset would be the following:
 
    ```sh
-SELECT u.first_name, u.last_name, s.location FROM songplays s
-JOIN users u
-ON u.user_id = s.user_id
-WHERE s.level = 'paid'
-GROUP BY u.first_name, u.last_name, s.location
+SELECT song_id, title, a.name  FROM songs s
+JOIN artists a
+ON a.artist_id = s.artist_id
+WHERE song_id = 'SORRZGD12A6310DBC3'
    ```
 This should return the following:
 
    ```sh
-
-
-
+SORRZGD12A6310DBC3	Harajuku Girls	Gwen Stefani
    ```
    
 ## Schema Design and ETL Pipeline
