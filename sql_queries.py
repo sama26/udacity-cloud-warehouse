@@ -19,7 +19,7 @@ time_table_drop = "DROP table IF EXISTS time"
 
 staging_events_table_create = ("CREATE TABLE IF NOT EXISTS staging_events"
                                "("
-                               "artist varchar , "
+                               "artist varchar(max) , "
                                "auth varchar, "
                                "first_name varchar, "
                                "gender char(1), "
@@ -36,7 +36,7 @@ staging_events_table_create = ("CREATE TABLE IF NOT EXISTS staging_events"
                                "status integer,"
                                "ts bigint,"
                                "user_agent varchar,"
-                               "userid smallint"
+                               "user_id integer"
                                ");"
                                )
 
@@ -46,10 +46,10 @@ staging_songs_table_create = ("CREATE TABLE IF NOT EXISTS staging_songs"
                               "artist_id char(18), "
                               "artist_latitude float, "
                               "artist_longitude float, "
-                              "artist_location varchar, "
-                              "artist_name varchar, "
+                              "artist_location varchar(max), "
+                              "artist_name varchar(max) , "
                               "song_id char(18), "
-                              "title varchar, "
+                              "title varchar , "
                               "duration real, "
                               "year integer"
                               ");"
@@ -57,30 +57,26 @@ staging_songs_table_create = ("CREATE TABLE IF NOT EXISTS staging_songs"
 
 songplay_table_create = ("CREATE TABLE IF NOT EXISTS songplays"
                          "("
-                         "songplay_id identity(0,1) PRIMARY KEY, "
-                         "start_time bigint NOT NULL, "
-                         "user_id smallint NOT NULL, "
+                         "songplay_id integer identity(0,1) PRIMARY KEY, "
+                         "start_time timestamp, "
+                         "user_id integer, "
                          "level char(4), "
                          "song_id char(18), "
                          "artist_id char(18), "
                          "session_id integer, "
                          "location varchar, "
                          "user_agent varchar"
-                         ")"
-                         "DISTSTYLE KEY"
-                         "DISTKEY (start_time)"
-                         "SORTKEY (start_time);"
+                         ");"
                          )
 
 user_table_create = ("CREATE TABLE IF NOT EXISTS users"
                      "("
-                     "user_id smallint PRIMARY KEY, "
+                     "user_id integer PRIMARY KEY, "
                      "first_name varchar, "
                      "last_name varchar, "
                      "gender char(1), "
                      "level char(4)"
-                     ")"
-                     "SORTKEY (song_id);"
+                     ");"
                      )
 
 song_table_create = ("CREATE TABLE IF NOT EXISTS songs"
@@ -90,34 +86,29 @@ song_table_create = ("CREATE TABLE IF NOT EXISTS songs"
                      "artist_id char(18) NOT NULL, "
                      "year integer, "
                      "duration real"
-                     ")"
-                     "SORTKEY (song_id);"
+                     ");"
                      )
 
 artist_table_create = ("CREATE TABLE IF NOT EXISTS artists"
                        "("
                        "artist_id char(18) PRIMARY KEY, "
-                       "name varchar, "
-                       "location varchar, "
+                       "name varchar(max), "
+                       "location varchar(max), "
                        "latitude float, "
                        "longitude float"
-                       ")"
-                       "SORTKEY (artist_id);"
+                       ");"
                        )
 
 time_table_create = ("CREATE TABLE IF NOT EXISTS time"
                      "("
-                     "start_time time PRIMARY KEY, "
+                     "start_time timestamp PRIMARY KEY, "
                      "hour smallint, "
                      "day smallint, "
                      "week smallint, "
                      "month smallint, "
                      "year smallint, "
-                     "weekday smallint"
-                     ")"
-                     "DISTSTYLE KEY"
-                     "DISTKEY (start_time)"
-                     "SORTKEY (start_time);"
+                     "weekday VARCHAR"
+                     ");"
                      )
 
 # STAGING TABLES
@@ -126,6 +117,7 @@ staging_events_copy = ("""
 COPY staging_events
 FROM {}
 iam_role {}
+TRUNCATECOLUMNS
 FORMAT AS json {};
 """).format(config['S3']['LOG_DATA'], config['IAM_ROLE']['ARN'], config['S3']['LOG_JSONPATH'])
 
@@ -133,6 +125,7 @@ staging_songs_copy = ("""
 COPY staging_songs
 FROM {}
 iam_role {}
+TRUNCATECOLUMNS
 FORMAT AS json 'auto';
 """).format(config['S3']['SONG_DATA'], config['IAM_ROLE']['ARN'])
 
@@ -141,16 +134,16 @@ FORMAT AS json 'auto';
 songplay_table_insert = ("""
 INSERT INTO songplays (start_time, user_id, level, song_id, artist_id, session_id, location, user_agent)
 SELECT DISTINCT
-    TIMESTAMP 'epoch' + (se.ts / 1000) * INTERVAL '1 second' as start_time,
-    e.userId,
+    TIMESTAMP 'epoch' + (e.ts / 1000) * INTERVAL '1 second' as start_time,
+    e.user_id,
     e.level,
     s.song_id,
     s.artist_id,
-    e.sessionId,
+    e.session_id,
     e.location,
-    e.userAgent
+    e.user_agent
 FROM staging_songs s
-INNER JOIN staging_events e
+JOIN staging_events e
 ON (s.title = e.song AND e.artist = s.artist_name)
 AND e.page = 'NextSong';
 """)
@@ -159,13 +152,13 @@ AND e.page = 'NextSong';
 user_table_insert = ("""
 INSERT INTO users (user_id, first_name, last_name, gender, level)
 SELECT DISTINCT 
-    userId, 
-    firstName, 
-    lastName, 
+    user_id, 
+    first_name, 
+    last_name, 
     gender, 
     level
 FROM staging_events
-WHERE userId IS NOT NULL
+WHERE user_id IS NOT NULL
 AND page = 'NextSong';
 """)
 
@@ -202,9 +195,10 @@ SELECT DISTINCT
        EXTRACT(WEEKS FROM start_time) AS week,
        EXTRACT(MONTH FROM start_time) AS month,
        EXTRACT(YEAR FROM start_time) AS year,
-       EXTRACT(DAY FROM start_time) AS weekday
+       TO_CHAR(start_time, 'Day') AS weekday
 FROM staging_events;
 """)
+
 
 # QUERY LISTS
 
