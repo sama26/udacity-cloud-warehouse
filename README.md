@@ -169,6 +169,8 @@ The dimension tables can be seen in the 'sql_queries.py' script, and have been d
 
 4. Time table - start_time is set as a PRIMARY KEY. The timestamp is then broken out into hour, day, week, month, year and weekday.
 
+5. In all tables FOREIGN KEYs have a NOT NULL constraint
+
 Once these tables have been created they are then populated using a series of INSERT statements:
 
 1. The songplays table is defined by forming an INNER JOIN on both staging tables, joining on song title, artist name and length of song. This ensures that each is a definite match, and results in 319 songs being populated into the table. 
@@ -180,6 +182,8 @@ Once these tables have been created they are then populated using a series of IN
 4. The artist table is populated from the songs staging table.
 
 5. The time table is populated from the events table, using EXTRACT (from start_time) commands to break down the start time into parts which an analyst may find more usable. 
+
+6. In each case SELECT DISTINCT statements are used to filter duplicate entries.
 
 ## Contributing
 

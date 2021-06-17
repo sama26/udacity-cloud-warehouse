@@ -58,11 +58,11 @@ staging_songs_table_create = ("CREATE TABLE IF NOT EXISTS staging_songs"
 songplay_table_create = ("CREATE TABLE IF NOT EXISTS songplays"
                          "("
                          "songplay_id integer identity(1,1) PRIMARY KEY, "
-                         "start_time timestamp, "
-                         "user_id integer, "
+                         "start_time timestamp NOT NULL, "
+                         "user_id integer NOT NULL, "
                          "level varchar, "
-                         "song_id varchar, "
-                         "artist_id varchar, "
+                         "song_id varchar NOT NULL, "
+                         "artist_id varchar NOT NULL, "
                          "session_id integer, "
                          "location varchar, "
                          "user_agent varchar"
@@ -138,7 +138,7 @@ FORMAT AS json 'auto';
 
 songplay_table_insert = ("""
 INSERT INTO songplays (START_TIME, USER_ID, LEVEL, SONG_ID, ARTIST_ID, SESSION_ID, LOCATION, USER_AGENT)
-SELECT 
+SELECT DISTINCT
        TIMESTAMP 'epoch' + (e.ts / 1000) * INTERVAL '1 second' as start_time,
        e.userId,
        e.level,
@@ -158,7 +158,7 @@ WHERE e.page = 'NextSong';
 
 user_table_insert = ("""
 INSERT INTO users (user_id, first_name, last_name, gender, level)
-SELECT
+SELECT DISTINCT
     userId, 
     firstName, 
     lastName, 
@@ -171,7 +171,7 @@ AND page = 'NextSong';
 
 song_table_insert = ("""
 INSERT INTO songs (song_id, title, artist_id, year, duration)
-SELECT
+SELECT DISTINCT
     song_id, 
     title, 
     artist_id, 
@@ -195,7 +195,7 @@ FROM staging_songs;
 
 time_table_insert = ("""
 INSERT INTO time (start_time, hour, day, week, month, year, weekday)
-SELECT
+SELECT DISTINCT
        TIMESTAMP 'epoch' + (ts/1000) * INTERVAL '1 second' as start_time,
        EXTRACT(HOUR FROM start_time) AS hour,
        EXTRACT(DAY FROM start_time) AS day,
