@@ -61,6 +61,25 @@ To get a local copy up and running follow these simple steps.
 
 * A Redshift cluster on AWS
 * A Python IDE
+* A dwh.cfg file must be present in the same location as the project files, using the following format:
+
+   ```sh
+[CLUSTER]
+HOST=
+DB_NAME=
+DB_USER=
+DB_PASSWORD=
+DB_PORT=5439
+
+[IAM_ROLE]
+ARN=
+
+[S3]
+LOG_DATA='s3://udacity-dend/log_data'
+LOG_JSONPATH='s3://udacity-dend/log_json_path.json'
+SONG_DATA='s3://udacity-dend/song_data'
+   ```
+The empty fields must be completed with the relevant information from the Redshift clsuter and associated IAM role.
 
 ### Installation
 
