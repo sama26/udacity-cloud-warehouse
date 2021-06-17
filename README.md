@@ -79,11 +79,13 @@ LOG_DATA='s3://udacity-dend/log_data'
 LOG_JSONPATH='s3://udacity-dend/log_json_path.json'
 SONG_DATA='s3://udacity-dend/song_data'
    ```
+
 The empty fields must be completed with the relevant information from the Redshift clsuter and associated IAM role.
 
 ### Installation
 
 1. To clone the repo:
+
    ```sh
    git clone https://github.com/sama26/udacity-cloud-warehouse.git
    ```
