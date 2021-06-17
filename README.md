@@ -89,21 +89,78 @@ To get a local copy up and running follow these simple steps.
 
 ### Sample query
 
+To test that the tables have loaded correctly - the following query calculates the most frequently played song, calling on the songplays, artists and songs tables:
+
    ```sh
-SELECT song_id, title, a.name  FROM songs s
+SELECT a.name, so.title, COUNT(so.title) FROM songplays sp
 JOIN artists a
-ON a.artist_id = s.artist_id
-WHERE song_id = 'SORRZGD12A6310DBC3'
+ON a.artist_id = sp.artist_id
+JOIN songs so
+ON sp.song_id = so.song_id
+GROUP BY 1, 2
+ORDER BY 3 DESC
+LIMIT 1
    ```
 This should return the following:
 
    ```sh
-SORRZGD12A6310DBC3	Harajuku Girls	Gwen Stefani
+Dwight Yoakam	You're The One	37
    ```
    
 ## Schema Design and ETL Pipeline
-TODO - State and justify your database schema design and ETL pipeline.
 
+The initial step in the pipeline is to copy the existing tables from s3 into the staging tables in the Redshift cluster.
+
+The staging tables have the same field names as the source tables, and do not have any restrictions - i.e:
+
+1. No PRIMARY KEY
+
+2. No NOT NULLs
+
+3. Only varchar, integer and bigint data types.
+
+The fact table 'songplays' is then defined as follows:
+
+   ```sh
+songplay_table_create = ("CREATE TABLE IF NOT EXISTS songplays"
+                         "("
+                         "songplay_id integer identity(1,1) PRIMARY KEY, "
+                         "start_time timestamp, "
+                         "user_id integer, "
+                         "level varchar, "
+                         "song_id varchar, "
+                         "artist_id varchar, "
+                         "session_id integer, "
+                         "location varchar, "
+                         "user_agent varchar"
+                         ")"
+                         "SORTKEY(start_time);"
+                         )
+   ```
+
+This creates a new serial column as the PRIMARY KEY (called IDENTITTY in Redshift)
+
+The dimension tables can be seen in the 'sql_queries.py' script, and have been designed as follows:
+
+1. User table - user_id is set as PRIMARY KEY and gender is set as char(1) as this only contains 'M' or 'F'
+
+2. Songs table - song_id is set as PRIMARY KEY
+
+3. Artists table - artist_id is set as PRIMARY KEY
+
+4. Time table - start_time is set as a PRIMARY KEY. The timestamp is then broken out into hour, day, week, month, year and weekday.
+
+Once these tables have been created they are then populated using a series of INSERT statements:
+
+1. The songplays table is defined by forming an INNER JOIN on both staging tables, joining on song title, artist name and length of song. This ensures that each is a definite match, and results in 319 songs being populated into the table. 
+
+2. The user table is populated from the events staging table, with a NOT_NULL constraint on the PRIMARY KEY
+
+3. The song table is populated from the songs staging table, with a NOT_NULL constraint on the PRIMARY KEY
+
+4. The artist table is populated from the songs staging table.
+
+5. The time table is populated from the events table, using EXTRACT (from start_time) commands to break down the start time into parts which an analyst may find more usable. 
 
 ## Contributing
 

@@ -149,7 +149,9 @@ SELECT
        e.userAgent
 FROM staging_songs s
 INNER JOIN staging_events e
-ON (s.title = e.song AND e.artist = s.artist_name)
+ON s.title = e.song
+AND e.artist = s.artist_name
+AND e.length = s.duration
 WHERE e.page = 'NextSong';
 """)
 
